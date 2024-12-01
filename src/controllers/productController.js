@@ -136,11 +136,9 @@ const updateProductViews = async (req, res) => {
       const infoTiendas = await pool.query(StoresQuery, [productoid]);
       let storeCounter = 0;
       for(const row of infoTiendas.rows){
-        product.Tiendas[String(storeCounter)] = row.nombre;
+        product.Tiendas[row.tiendaid] = row.nombre;
         product.Referencias[row.nombre] = row.referencia;
         product.Precios[row.nombre] = row.precio
-
-        storeCounter++;
       }
 
 

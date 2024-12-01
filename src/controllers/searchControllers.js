@@ -1,4 +1,4 @@
-const getCollection = require('../config/mongoconfig'); 
+const {getCollection} = require('../config/mongoconfig'); 
 
 const searchProducts = async (req, res)=>{
     const collection = await getCollection();
