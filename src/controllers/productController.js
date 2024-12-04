@@ -208,6 +208,128 @@ const updateProductViews = async (req, res) => {
     } 
   }
 
+
+  const  rateProduct = async (req, res) => {
+    const { userId, productId, rating } = req.body;
+    console.log(req.body);
+  
+    if (!userId || !productId || !rating) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos: userId, productId, rating' });
+    }
+  
+    try {
+      const client = await pool.connect();
+  
+      // Verificar si ya existe una calificación para este usuario y producto
+      const checkQuery = `
+        SELECT id FROM calificaciones
+        WHERE "user" = $1 AND product = $2
+      `;
+      const checkResult = await client.query(checkQuery, [userId, productId]);
+  
+      if (checkResult.rows.length > 0) {
+        // Si ya existe una calificación, actualiza
+        const updateQuery = `
+          UPDATE calificaciones
+          SET calificacion = $1
+          WHERE id = $2
+        `;
+        await client.query(updateQuery, [rating, checkResult.rows[0].id]);
+        res.status(200).json({ message: 'Calificación actualizada correctamente' });
+      } else {
+        // Si no existe, inserta una nueva calificación
+        const insertQuery = `
+          INSERT INTO calificaciones ("user", product, calificacion)
+          VALUES ($1, $2, $3)
+        `;
+        await client.query(insertQuery, [userId, productId, rating]);
+        res.status(201).json({ message: 'Calificación registrada correctamente' });
+      }
+  
+      client.release();
+    } catch (error) {
+      console.error('Error manejando calificación:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
+
+  const productRating = async (req, res) => {
+    const { productId } = req.params;
+  
+    try {
+      const client = await pool.connect();
+  
+      // Obtener todas las calificaciones del producto
+      const query = `
+        SELECT calificacion, COUNT(*) AS count
+        FROM calificaciones
+        WHERE product = $1
+        GROUP BY calificacion
+        ORDER BY calificacion DESC
+      `;
+      const result = await client.query(query, [productId]);
+  
+      // Calcular el promedio de calificaciones
+      const averageQuery = `
+        SELECT AVG(calificacion) AS average, COUNT(*) AS total
+        FROM calificaciones
+        WHERE product = $1
+      `;
+      const averageResult = await client.query(averageQuery, [productId]);
+  
+      const ratings = result.rows;
+      const average = parseFloat(averageResult.rows[0].average).toFixed(1);
+      const totalRatings = parseInt(averageResult.rows[0].total);
+  
+      client.release();
+  
+      res.status(200).json({ ratings, average, totalRatings });
+    } catch (error) {
+      console.error('Error obteniendo calificaciones:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
+
+
+  
+  // Obtener la calificación del usuario para un producto
+  const getUserRating = async (req, res) => {
+    const { userId, productId } = req.query;
+  
+    if (!userId || !productId) {
+      return res.status(400).json({
+        error: 'Todos los campos son requeridos: userId, productId',
+      });
+    }
+  
+    try {
+      const client = await pool.connect();
+  
+      // Consulta para obtener la calificación
+      const query = `
+        SELECT calificacion
+        FROM calificaciones
+        WHERE "user" = $1 AND product = $2
+      `;
+      const result = await client.query(query, [userId, productId]);
+  
+      // Retorna la calificación o 0 si no existe
+      const userRating = result.rows.length > 0 ? result.rows[0].calificacion : 0;
+  
+      res.status(200).json({
+        rating: userRating,
+      });
+  
+      client.release();
+    } catch (error) {
+      console.error('Error obteniendo calificación:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+      });
+    }
+  };
+  
+
   module.exports = {
     updateProductViews,
     getProducts,
@@ -215,5 +337,8 @@ const updateProductViews = async (req, res) => {
     getSingleProduct,
     getSubcategories,
     getSubcategoryProducts,
-    getMostViewed
+    getMostViewed, 
+    rateProduct, 
+    productRating,
+    getUserRating,
   };

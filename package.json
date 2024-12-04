@@ -11,6 +11,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@supabase/supabase-js": "^2.46.2",
+    "AsyncStorage": "^0.1.5",
     "axios": "^1.7.8",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
@@ -18,7 +20,8 @@
     "express": "^4.21.1",
     "mongodb": "^6.11.0",
     "multer": "^1.4.5-lts.1",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "supabase": "^1.223.10"
   },
   "devDependencies": {
     "eslint": "^9.16.0",

@@ -26,4 +26,8 @@ app.use('/api', productRoutes);
 const imageRoutes = require('./routes/imageRoutes.js');
 app.use('/api', imageRoutes);
 
+//User endpoints
+const userRoutes = require('./routes/userRoutes.js');
+app.use('/api', userRoutes);
+
 module.exports = app;

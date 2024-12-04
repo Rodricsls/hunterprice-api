@@ -62,14 +62,19 @@ const getNearestLocation = async (req, res) => {
 
   const getLocationsByStore = async (req, res) => {
     const tienda = req.query.tienda;
+    const userLat = req.query.userLat;
+    const userLng = req.query.userLng;
+    const destLat = req.query.destLat;
+    const destLng = req.query.destLng;
   
     if (!tienda) {
-      return res.status(400).json({ error: "The 'tienda' parameter is required." });
+      return res.status(400).json({ error: "El parámetro 'tienda' es obligatorio." });
     }
   
     try {
+      // Consulta para obtener las locaciones de la tienda
       const query = `
-        SELECT L.nombre_tienda, L.direccion, L.longitud, L.latitud
+        SELECT L.nombre_tienda, L.direccion, L.longitud, L.latitud, T.logo_ref
         FROM locaciones L
         INNER JOIN tiendas T ON L.id_tienda = T.id
         WHERE T.id = $1;
@@ -77,13 +82,34 @@ const getNearestLocation = async (req, res) => {
       const { rows } = await pool.query(query, [tienda]);
   
       if (rows.length === 0) {
-        return res.status(404).json({ error: "No stores found for the given ID" });
+        return res.status(404).json({ error: "No se encontraron tiendas para el ID proporcionado." });
       }
   
-      res.json(rows);
+      // Si no se proporcionan coordenadas, devolver solo las locaciones
+      if (!userLat || !userLng || !destLat || !destLng) {
+        return res.json(rows);
+      }
+  
+      // Llamada al API de Mapbox Directions para calcular la ruta
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLng},${userLat};${destLng},${destLat}?geometries=geojson&access_token=${process.env.MAPBOX_TOKEN}`;
+      const routeResponse = await axios.get(url);
+  
+      if (routeResponse.data.routes.length === 0) {
+        return res.status(404).json({ error: "No se encontró una ruta." });
+      }
+  
+      // Agregar la información de la ruta
+      const routeData = {
+        route: routeResponse.data.routes[0].geometry, // GeoJSON con la ruta
+        duration: routeResponse.data.routes[0].duration, // Duración estimada en segundos
+        distance: routeResponse.data.routes[0].distance, // Distancia en metros
+      };
+      console.log(routeData);
+  
+      res.json({ locations: rows, route: routeData });
     } catch (error) {
-      console.error("Server error:", error.message);
-      res.status(500).json({ error: "Server internal error." });
+      console.error("Error en el servidor:", error.message);
+      res.status(500).json({ error: "Error interno del servidor." });
     }
   };
   module.exports = {
