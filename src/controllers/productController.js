@@ -51,9 +51,11 @@ const updateProductViews = async (req, res) => {
           WHERE P.categoriaid = $1 AND VCP.caracteristicaid = 1;
         `
     : `
-          SELECT identifier, "nombreDisplay", imagenurl
-          FROM public.productos
-          WHERE categoriaid = $1;
+          SELECT P.identifier, P."nombreDisplay", P.imagenurl, CC.nombrecaracteristica, VCP.valor
+          FROM public.productos P
+          INNER JOIN public.valorescaracteristicasproducto VCP ON P.identifier = VCP.productoid
+          INNER JOIN public.caracteristicascategoria CC ON CC.id = VCP.caracteristicaid
+          WHERE P.categoriaid = $1 AND VCP.caracteristicaid = 6;
         `;
       try{
 
@@ -72,7 +74,7 @@ const updateProductViews = async (req, res) => {
                                 FROM public.productos P
                                 INNER JOIN public.valorescaracteristicasproducto VCP ON P.identifier = VCP.productoid
                                 INNER JOIN public.caracteristicascategoria CC ON CC.id = VCP.caracteristicaid
-                                WHERE VCP.caracteristicaid = 1 OR VCP.caracteristicaid = 5
+                                WHERE VCP.caracteristicaid = 1 OR VCP.caracteristicaid = 6
                                 ORDER BY P.reg_date DESC 
                                 LIMIT 10;
                             `;
@@ -154,10 +156,9 @@ const updateProductViews = async (req, res) => {
   const getSubcategories = async (req, res) => {
     const { categoriaid } = req.params;
     const SubcategoriesQuery =  `
-                                SELECT DISTINCT(valor) 
-                                FROM public.valorescaracteristicasproducto VCP
-                                INNER JOIN public.productos P ON P.identifier = VCP.productoid
-                                WHERE P.categoriaid = $1;
+                            SELECT  DISTINCT (nombre), id
+                            FROM public.categorias
+                            WHERE parent_id = $1
                             `;
     try{
 
@@ -170,16 +171,15 @@ const updateProductViews = async (req, res) => {
   }
 
   const getSubcategoryProducts = async (req, res) => {
-    const { categoriaName } = req.params;
+    const { categoriaid } = req.params;
     const SubcategorieProductsQuery =  `
-                                      SELECT P.identifier, P."nombreDisplay", P.imagenurl 
-                                      FROM public.valorescaracteristicasproducto VCP
-                                      INNER JOIN public.productos P ON P.identifier = VCP.productoid
-                                      WHERE VCP.valor = $1;
+                                    SELECT P.identifier, P."nombreDisplay", P.imagenurl 
+                                    FROM public.productos P INNER JOIN public.categorias C ON P.categoriaid = C.id
+                                    WHERE  C.parent_id = $1 OR P.categoriaid = $1
                             `;
     try{
 
-      const result = await pool.query(SubcategorieProductsQuery, [categoriaName]);
+      const result = await pool.query(SubcategorieProductsQuery, [categoriaid]);
       return res.status(200).json(result.rows)
     }catch(error){
       console.error("Database error:", error);
@@ -194,7 +194,7 @@ const updateProductViews = async (req, res) => {
                             FROM public.productos P
                             INNER JOIN public.valorescaracteristicasproducto VCP ON P.identifier = VCP.productoid
                             INNER JOIN public.caracteristicascategoria CC ON CC.id = VCP.caracteristicaid
-                            WHERE VCP.caracteristicaid = 1 OR VCP.caracteristicaid = 5
+                            WHERE VCP.caracteristicaid = 1 OR VCP.caracteristicaid = 6
                             ORDER BY vistas DESC 
                             LIMIT 10;
                             `;

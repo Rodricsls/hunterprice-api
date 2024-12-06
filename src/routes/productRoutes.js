@@ -14,7 +14,7 @@ router.post('/update-vistas', updateProductViews);
 router.get('/getProducts/:categoriaid', getProducts);
 router.get('/getSingleProduct/:productoid', getSingleProduct);
 router.get('/getSubcategories/:categoriaid', getSubcategories);
-router.get('/getSubcategoryProducts/:categoriaName', getSubcategoryProducts);
+router.get('/getSubcategoryProducts/:categoriaid', getSubcategoryProducts);
 router.get('/getRecentlyAdded', getRecentlyAdded);
 router.get('/getMostViewed', getMostViewed);
 router.post('/rateProduct', rateProduct);

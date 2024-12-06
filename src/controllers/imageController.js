@@ -1,4 +1,5 @@
 const axios = require('axios');
+const {pool}= require('../config/postgresconfig.js');
 
 const sendImageToCBIR = async (req, res)=>{
 
@@ -10,13 +11,49 @@ const sendImageToCBIR = async (req, res)=>{
 
         //Buffer of the image
         const imageBuffer = req.file.buffer;
-        console.log(imageBuffer);
+        console.log("Enviando la imagen imageBuffer"); 
+        //Here we have to send the image to the CBIR server
+        const response = await axios.post('http://127.0.0.1:8000/getSimilarProducts', imageBuffer, {
+            headers: {
+              'Content-Type': 'application/octet-stream', // Indicate raw binary data
+            },
+          });
+        
+        console.log('Data:', response.data); // Response data
+        const data = response.data;
 
-        /* 
-            Here we have to send the image to the CBIR server
+        
 
-        */
-       res.status(200).json({ message: "Image sent to CBIR server" }); //We have to send the data too
+        let similarProductsQuery = `
+                                SELECT P.identifier, P."nombreDisplay", P.imagenurl, CC.nombrecaracteristica, VCP.valor
+                                FROM public.productos P
+                                INNER JOIN public.valorescaracteristicasproducto VCP ON P.identifier = VCP.productoid
+                                INNER JOIN public.caracteristicascategoria CC ON CC.id = VCP.caracteristicaid
+                                WHERE (VCP.caracteristicaid = 1 OR VCP.caracteristicaid = 6) AND (
+                                `
+
+        for(let i = 0; i < data.Resultados.length; i++){
+            resultado = data.Resultados[i];
+            if((i+1) ==  data.Resultados.length){
+                similarProductsQuery += "P.identifier = \'" + resultado.identifier + "\' )";
+            }else{
+                similarProductsQuery += "P.identifier = \'" + resultado.identifier + "\' OR ";
+            }
+        }
+        console.log("EL QUERY ES EL SIGUIENTE: ");
+        console.log(similarProductsQuery);
+        
+        //Fetching the results from the database
+        try{
+            const result = await pool.query(similarProductsQuery);
+            return res.status(200).json(result.rows);
+        }catch(error){
+            console.error("Database error:", error);
+            return res.status(400).json({ error: "Unable to fetch data" });
+        }
+            
+            
+       
 
     }catch(error){
 
