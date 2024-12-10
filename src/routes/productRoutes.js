@@ -3,7 +3,8 @@
 const express = require('express');
 const { 
 updateProductViews, getProducts, getRecentlyAdded,
-getSingleProduct, getSubcategories, getSubcategoryProducts, getMostViewed , rateProduct, productRating, getUserRating
+getSingleProduct, getSubcategories, getSubcategoryProducts, getMostViewed , rateProduct, productRating, getUserRating,
+likeProduct, dislikeProduct, verifyLike
 } = require('../controllers/productController.js');
 
 const router = express.Router();
@@ -21,5 +22,8 @@ router.post('/rateProduct', rateProduct);
 
 router.get('/productRating/:productId', productRating);
 router.get('/getUserRating', getUserRating);
+router.post('/likeProduct', likeProduct);
+router.post('/dislikeProduct', dislikeProduct);
+router.get('/verifyLike/:userId/:productId', verifyLike);
 
 module.exports= router;

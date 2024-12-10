@@ -66,6 +66,12 @@ const getNearestLocation = async (req, res) => {
     const userLng = req.query.userLng;
     const destLat = req.query.destLat;
     const destLng = req.query.destLng;
+    console.log("tienda", tienda);
+    console.log("userLat", userLat);
+    console.log("userLng", userLng);
+    console.log("destLat", destLat);
+    console.log("destLng", destLng);
+    
   
     if (!tienda) {
       return res.status(400).json({ error: "El parámetro 'tienda' es obligatorio." });
@@ -80,19 +86,24 @@ const getNearestLocation = async (req, res) => {
         WHERE T.id = $1;
       `;
       const { rows } = await pool.query(query, [tienda]);
+      console.log("TRienda")
   
       if (rows.length === 0) {
         return res.status(404).json({ error: "No se encontraron tiendas para el ID proporcionado." });
       }
+      console.log("Aca");
   
       // Si no se proporcionan coordenadas, devolver solo las locaciones
       if (!userLat || !userLng || !destLat || !destLng) {
         return res.json(rows);
       }
+      console.log("aca 2")
   
       // Llamada al API de Mapbox Directions para calcular la ruta
+      console.log(`https://api.mapbox.com/directions/v5/mapbox/driving/${userLng},${userLat};${destLng},${destLat}?geometries=geojson&access_token=${process.env.MAPBOX_TOKEN}`)
       const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLng},${userLat};${destLng},${destLat}?geometries=geojson&access_token=${process.env.MAPBOX_TOKEN}`;
       const routeResponse = await axios.get(url);
+      console.log("respuesta: ",routeResponse);
   
       if (routeResponse.data.routes.length === 0) {
         return res.status(404).json({ error: "No se encontró una ruta." });
@@ -104,7 +115,7 @@ const getNearestLocation = async (req, res) => {
         duration: routeResponse.data.routes[0].duration, // Duración estimada en segundos
         distance: routeResponse.data.routes[0].distance, // Distancia en metros
       };
-      console.log(routeData);
+      console.log("Ruta: ",routeData);
   
       res.json({ locations: rows, route: routeData });
     } catch (error) {

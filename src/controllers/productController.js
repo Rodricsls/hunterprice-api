@@ -329,6 +329,123 @@ const updateProductViews = async (req, res) => {
     }
   };
   
+  const likeProduct = async (req, res) => {
+    const { userId, productId } = req.body;
+    console.log(req.body);
+  
+    // Validate required fields
+    if (!userId || !productId) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos: userId, productId' });
+    }
+  
+    try {
+      const client = await pool.connect();
+  
+      // Check if a favorite already exists for this user and product
+      const checkQuery = `
+        SELECT usuarioid FROM favoritos
+        WHERE "usuarioid" = $1 AND productoid = $2
+      `;
+      const checkResult = await client.query(checkQuery, [userId, productId]);
+  
+      if (checkResult.rows.length <= 0) {
+        // If no favorite exists, insert a new one
+        const insertQuery = `
+          INSERT INTO favoritos ("usuarioid", productoid)
+          VALUES ($1, $2)
+        `;
+        await client.query(insertQuery, [userId, productId]);
+        res.status(201).json({ message: 'Favorito registrado correctamente' });
+      }else{
+        //it is already liked
+        res.status(200).json({ message: 'Ya le diste like a este producto' });
+      }
+  
+      client.release();
+    } catch (error) {
+      console.error('Error manejando favorito:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
+
+  const dislikeProduct = async (req, res) => {
+    const { userId, productId } = req.body;
+    console.log(req.body);
+  
+    // Validate required fields
+    if (!userId || !productId) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos: userId, productId' });
+    }
+  
+    try {
+      const client = await pool.connect();
+  
+      // Check if the favorite exists for this user and product
+      const checkQuery = `
+        SELECT usuarioid FROM favoritos
+        WHERE "usuarioid" = $1 AND productoid = $2
+      `;
+      const checkResult = await client.query(checkQuery, [userId, productId]);
+  
+      if (checkResult.rows.length > 0) {
+        // If a favorite exists, delete it
+        const deleteQuery = `
+          DELETE FROM favoritos
+          WHERE usuarioid = $1 AND productoid = $2
+        `;
+        await client.query(deleteQuery, [userId, productId]);
+        res.status(200).json({ message: 'Favorito eliminado correctamente' });
+      } else {
+        // If no favorite exists, return a not found message
+        res.status(404).json({ message: 'No existe un favorito para eliminar' });
+      }
+  
+      client.release();
+    } catch (error) {
+      console.error('Error eliminando favorito:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
+  
+  const verifyLike = async (req, res) => {
+    const { userId, productId } = req.params;
+    console.log(req.params);
+  
+    // Validate required fields
+    if (!userId || !productId) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos: userId, productId' });
+    }
+  
+    try {
+      const client = await pool.connect();
+  
+      // Check if the user has liked the product
+      const checkQuery = `
+        SELECT usuarioid FROM favoritos
+        WHERE "usuarioid" = $1 AND productoid = $2
+      `;
+      const checkResult = await client.query(checkQuery, [userId, productId]);
+  
+      if (checkResult.rows.length > 0) {
+        // If the like exists, return a success response
+        res.status(200).json({ liked: true, message: 'El usuario ha dado like a este producto.' });
+      } else {
+        // If the like does not exist, return a not found response
+        res.status(200).json({ liked: false, message: 'El usuario no ha dado like a este producto.' });
+      }
+  
+      client.release();
+    } catch (error) {
+      console.error('Error verificando like:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
+  
+  
+ 
+  
+  
+  
 
   module.exports = {
     updateProductViews,
@@ -341,4 +458,7 @@ const updateProductViews = async (req, res) => {
     rateProduct, 
     productRating,
     getUserRating,
+    likeProduct,
+    dislikeProduct,
+    verifyLike,
   };
