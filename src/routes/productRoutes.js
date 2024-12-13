@@ -18,6 +18,7 @@ const {
   getUserLikedProducts,
   recommendProducts,
   logUserSearch,
+  getPriceHistory,
 } = require("../controllers/productController.js");
 
 const router = express.Router();
@@ -41,5 +42,6 @@ router.get("/verifyLike/:userId/:productId", verifyLike);
 router.get("/getUserLikedProducts/:userId", getUserLikedProducts);
 router.get("/recommendProducts/:userId/:productId", recommendProducts);
 router.post("/logUserSearch", logUserSearch);
+router.get("/getHistoryPrice/:productId", getPriceHistory);
 
 module.exports = router;

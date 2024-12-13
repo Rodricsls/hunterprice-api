@@ -338,14 +338,12 @@ const likeProduct = async (req, res) => {
   }
 
   try {
-    const client = await pool.connect();
-
     // Check if a favorite already exists for this user and product
     const checkQuery = `
         SELECT usuarioid FROM favoritos
         WHERE "usuarioid" = $1 AND productoid = $2
       `;
-    const checkResult = await client.query(checkQuery, [userId, productId]);
+    const checkResult = await pool.query(checkQuery, [userId, productId]);
 
     if (checkResult.rows.length <= 0) {
       // If no favorite exists, insert a new one
@@ -353,14 +351,12 @@ const likeProduct = async (req, res) => {
           INSERT INTO favoritos ("usuarioid", productoid)
           VALUES ($1, $2)
         `;
-      await client.query(insertQuery, [userId, productId]);
+      await pool.query(insertQuery, [userId, productId]);
       res.status(201).json({ message: "Favorito registrado correctamente" });
     } else {
       //it is already liked
       res.status(200).json({ message: "Ya le diste like a este producto" });
     }
-
-    client.release();
   } catch (error) {
     console.error("Error manejando favorito:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -379,29 +375,28 @@ const dislikeProduct = async (req, res) => {
   }
 
   try {
-    const client = await pool.connect();
-
     // Check if the favorite exists for this user and product
     const checkQuery = `
         SELECT usuarioid FROM favoritos
         WHERE "usuarioid" = $1 AND productoid = $2
       `;
-    const checkResult = await client.query(checkQuery, [userId, productId]);
+    const checkResult = await pool.query(checkQuery, [userId, productId]);
+    console.log(checkResult);
 
     if (checkResult.rows.length > 0) {
       // If a favorite exists, delete it
+      console.log("Aca");
       const deleteQuery = `
           DELETE FROM favoritos
           WHERE usuarioid = $1 AND productoid = $2
         `;
-      await client.query(deleteQuery, [userId, productId]);
+      await pool.query(deleteQuery, [userId, productId]);
+      console.log("ya");
       res.status(200).json({ message: "Favorito eliminado correctamente" });
     } else {
       // If no favorite exists, return a not found message
       res.status(404).json({ message: "No existe un favorito para eliminar" });
     }
-
-    client.release();
   } catch (error) {
     console.error("Error eliminando favorito:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -636,6 +631,36 @@ const logUserSearch = async (req, res) => {
   }
 };
 
+const getPriceHistory = async (req, res) => {
+  const { productId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+          fp.fecha,
+          fp.precio,
+          p.nombre AS product_name,
+          t.nombre AS store_name
+      FROM 
+          fechas_precios fp
+      INNER JOIN 
+          productos p ON fp.identifier = p.identifier
+      INNER JOIN 
+          tiendas t ON fp.tiendaid = t.id
+      WHERE 
+          fp.identifier = $1
+      ORDER BY 
+          fp.fecha ASC;
+    `;
+
+    const result = await pool.query(query, [productId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching product price history:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   updateProductViews,
   getProducts,
@@ -653,4 +678,5 @@ module.exports = {
   getUserLikedProducts,
   recommendProducts,
   logUserSearch,
+  getPriceHistory,
 };
