@@ -17,6 +17,8 @@ const sendImageToCBIR = async (req, res)=>{
             headers: {
               'Content-Type': 'application/octet-stream', // Indicate raw binary data
             },
+            maxContentLength: Infinity, // Allow large payloads
+            maxBodyLength: Infinity,
           });
         
         console.log('Data:', response.data); // Response data
