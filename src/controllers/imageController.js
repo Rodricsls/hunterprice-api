@@ -8,10 +8,12 @@ const sendImageToCBIR = async (req, res)=>{
         if(!req.file){
             return res.status(400).json({ error: "No image file provided" });
         }
-
+        console.log(">>>> HA ENTRADO UN NUEVO REQUEST <<<<")
         //Buffer of the image
         const imageBuffer = req.file.buffer;
         console.log("Enviando la imagen imageBuffer"); 
+        console.log(imageBuffer)
+
         //Here we have to send the image to the CBIR server
         const response = await axios.post('http://127.0.0.1:8000/getSimilarProducts', imageBuffer, {
             headers: {
