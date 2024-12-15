@@ -44,6 +44,6 @@ router.get("/getUserLikedProducts/:userId", getUserLikedProducts);
 router.get("/recommendProducts/:userId/:productId", recommendProducts);
 router.post("/logUserSearch", logUserSearch);
 router.get("/getHistoryPrice/:productId", getPriceHistory);
-router.get("/getCategoryPriceHistory/:categoriaid", getCategoryPriceHistory);
+router.get("/getCategoryPriceHistory/:categoryId", getCategoryPriceHistory);
 
 module.exports = router;
