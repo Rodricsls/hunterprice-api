@@ -49,8 +49,13 @@ const sendImageToCBIR = async (req, res)=>{
         
         //Fetching the results from the database
         try{
-            const result = await pool.query(similarProductsQuery);
-            return res.status(200).json(result.rows);
+            if(data.Resultados.length != 0){
+                const result = await pool.query(similarProductsQuery);
+                return res.status(200).json(result.rows);
+
+            }else{
+                return res.status(250).json({mensaje: "No se encontraron resultados"});
+            }
         }catch(error){
             console.error("Database error:", error);
             return res.status(400).json({ error: "Unable to fetch data" });
