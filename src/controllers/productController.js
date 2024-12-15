@@ -661,6 +661,37 @@ const getPriceHistory = async (req, res) => {
   }
 };
 
+const getCategoryPriceHistory = async (req, res) => {
+  const { categoryId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+          fp.fecha,
+          AVG(fp.precio) AS average_price,
+          c.nombre AS category_name
+      FROM 
+          fechas_precios fp
+      INNER JOIN 
+          productos p ON fp.identifier = p.identifier
+      INNER JOIN 
+          categorias c ON p.categoriaid = c.id
+      WHERE 
+          c.id = $1
+      GROUP BY 
+          fp.fecha, c.nombre
+      ORDER BY 
+          fp.fecha ASC;
+    `;
+
+    const result = await pool.query(query, [categoryId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching category price history:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   updateProductViews,
   getProducts,
@@ -679,4 +710,5 @@ module.exports = {
   recommendProducts,
   logUserSearch,
   getPriceHistory,
+  getCategoryPriceHistory,
 };
