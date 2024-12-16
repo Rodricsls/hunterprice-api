@@ -103,7 +103,7 @@ const getSingleProduct = async (req, res) => {
   const { productoid } = req.params;
 
   const CharacteristicsQuery = `
-                                SELECT identifier, nombre, imagenurl, valor, nombrecaracteristica
+                                SELECT identifier, nombre, imagenurl, valor, nombrecaracteristica, ar
                                 FROM public.productos P
                                 INNER JOIN public.valorescaracteristicasproducto VCP ON P.identifier = VCP.productoid
                                 INNER JOIN public.caracteristicascategoria CC ON CC.id = VCP.caracteristicaid
@@ -126,6 +126,7 @@ const getSingleProduct = async (req, res) => {
       Tiendas: {},
       Referencias: {},
       Precios: {},
+      ar: "",
     };
     const infoCaracteristicas = await pool.query(CharacteristicsQuery, [
       productoid,
@@ -135,6 +136,7 @@ const getSingleProduct = async (req, res) => {
       product.Nombre = row.nombre;
       product.ImagenURL = row.imagenurl;
       product.Caracteristicas[row.nombrecaracteristica] = row.valor;
+      product.ar = row.ar;
     }
     const infoTiendas = await pool.query(StoresQuery, [productoid]);
     let storeCounter = 0;
@@ -664,31 +666,55 @@ const getPriceHistory = async (req, res) => {
 const getCategoryPriceHistory = async (req, res) => {
   const { categoryId } = req.params;
 
+  if (!categoryId) {
+    return res
+      .status(400)
+      .json({ error: "El ID de la categoría es obligatorio." });
+  }
+
+  console.log("Category ID recibido:", categoryId);
+
   try {
     const query = `
+      WITH RECURSIVE category_tree AS (
+        SELECT id, nombre, parent_id
+        FROM categorias
+        WHERE id = $1
+        UNION ALL
+        SELECT c.id, c.nombre, c.parent_id
+        FROM categorias c
+        INNER JOIN category_tree ct ON c.parent_id = ct.id
+      )
       SELECT 
           fp.fecha,
-          AVG(fp.precio) AS average_price,
-          c.nombre AS category_name
+          ROUND(CAST(AVG(fp.precio) AS NUMERIC), 2) AS average_price
       FROM 
           fechas_precios fp
       INNER JOIN 
           productos p ON fp.identifier = p.identifier
       INNER JOIN 
-          categorias c ON p.categoriaid = c.id
-      WHERE 
-          c.id = $1
+          category_tree ct ON p.categoriaid = ct.id
       GROUP BY 
-          fp.fecha, c.nombre
+          fp.fecha
       ORDER BY 
           fp.fecha ASC;
     `;
 
     const result = await pool.query(query, [categoryId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "No se encontraron datos de precios para esta categoría.",
+      });
+    }
+
     res.json(result.rows);
   } catch (error) {
-    console.error("Error fetching category price history:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error(
+      "Error al obtener el historial de precios de la categoría:",
+      error
+    );
+    res.status(500).json({ error: "Error interno del servidor." });
   }
 };
 
